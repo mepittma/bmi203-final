@@ -4,13 +4,26 @@
 
 from itertools import groupby
 
+# Function to return the reverse complement of a sequence
+def reverse_complement(seq):
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+    bases = list(seq)
+    bases = reversed([complement.get(base,base) for base in bases])
+    return ''.join(bases)
+
 # Function to read in text file as a list of sequences
 def read_text(filename):
 
+    full_list = []
     with open(filename, 'r') as pf:
-        pos_list = pf.read().splitlines()
+        fwd_list = pf.read().splitlines()
 
-    return pos_list
+        # Also return reverse complements of sequences
+        for seq in fwd_list:
+            full_list.append(seq)
+            full_list.append(reverse_complement(seq))
+
+    return full_list
 
 # Function to read in fasta file as a list of sequences
 def read_fasta(filename):
@@ -24,6 +37,9 @@ def read_fasta(filename):
             headerStr = header.__next__()[1:].strip()
             seq = "".join(s.strip() for s in headers.__next__())
             seqs.append(seq)
+
+            # Include the reverse complement of the sequence, too
+            seqs.append(reverse_complement(seq))
 
     return seqs
 
@@ -56,13 +72,18 @@ def remove_strings_w_subs(big_list, substring_list):
 base_dir = "/Users/student/Documents/BMI206/bmi203-final/seqs"
 neg_file = "{}/yeast-upstream-1k-negative.fa".format(base_dir)
 pos_file = "{}/rap1-lieb-positives.txt".format(base_dir)
-out_file = "{}/filt-negative.txt".format(base_dir)
+out_nfile = "{}/filt-negative.txt".format(base_dir)
+out_pfile = "{}/filt-positive.txt".format(base_dir)
 
 # Read in the lists from the files
 pos_list = read_text(pos_file)
 neg_list = read_fasta(neg_file)
 keep_list = remove_strings_w_subs(neg_list, pos_list)
 
+# Save out all the positive sequences (including reverse complements)
+with open(out_pfile, 'w') as fh:
+    fh.write("\n".join(str(i) for i in keep_list))
+
 # Save out the negative sequences as seq\nseq\n etc.
-with open(out_file, 'w') as fh:
+with open(out_nfile, 'w') as fh:
     fh.write("\n".join(str(i) for i in keep_list))
