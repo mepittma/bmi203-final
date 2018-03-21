@@ -82,7 +82,11 @@ keep_list = remove_strings_w_subs(neg_list, pos_list)
 
 # Save out all the positive sequences (including reverse complements)
 with open(out_pfile, 'w') as fh:
-    fh.write("\n".join(str(i) for i in keep_list))
+    rev_list = []
+    for i in pos_list:
+        rev_list.append(reverse_complement(i))
+    full_list = pos_list + rev_list
+    fh.write("\n".join(str(i) for i in full_list))
 
 # Save out the negative sequences as seq\nseq\n etc.
 with open(out_nfile, 'w') as fh:
