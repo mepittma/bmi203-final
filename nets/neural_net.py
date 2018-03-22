@@ -1,12 +1,13 @@
-# Endless thanks to Stephen C Welch: https://github.com/stephencwelch/Neural-Networks-Demystified
+# Code modeled heavily off the follwing two sources:
+# Stephen C Welch: https://github.com/stephencwelch/Neural-Networks-Demystified
+# Alan Richmond http://python3.codes/a-neural-network-in-python-part-2-activation-functions-bias-sgd-etc/
 
-# Classes that follow are mostly his, except that I have added cross-validation
+# Classes that follow are mostly theirs, except that I have added cross-validation
 # functionality, alternative activation functions, homebrewed SGD (instead of
 # stealing scipy's), alternative score metrics, learning rate, and a bias node.
 
 # I also initialize random start weights according to the best practices outlined
 # here: https://stats.stackexchange.com/questions/47590/what-are-good-initial-weights-in-a-neural-network
-# Thanks, Alan Richmond http://python3.codes/a-neural-network-in-python-part-2-activation-functions-bias-sgd-etc/
 
 # Tests to check functions appearing in this script are in test/test_algs.py
 
@@ -44,7 +45,7 @@ class Neural_Network(object):
         yHat = self.sigmoid(self.z3)
         return yHat
 
-    def sigmoid(self, z):
+    def activate(self, z):
 
         if actFunction == "sigmoid":
             return 1/(1+np.exp(-z))
@@ -53,7 +54,7 @@ class Neural_Network(object):
         if actFunction =="tanh":
             return np.tanh(z)
 
-    def sigmoidPrime(self,z):
+    def activatePrime(self,z):
 
         if actFunction == "sigmoid":
             return np.exp(-z)/((1+np.exp(-z))**2)
@@ -62,32 +63,12 @@ class Neural_Network(object):
         if actFunction =="tanh":
             return 1 - z**2
 
-    def costFunction(self, X, y):
-        #Compute cost for given X,y, use weights already stored in class.
-        self.yHat = self.forward(X)
-        J = 0.5*sum((y-self.yHat)**2)
-        return J
-
-    def costFunctionPrime(self, X, y):
-        #Compute derivative with respect to W1 and W2 for a given X and y:
-        self.yHat = self.forward(X)
-
-        delta3 = np.multiply(-(y-self.yHat), self.sigmoidPrime(self.z3))
-        dJdW2 = np.dot(self.a2.T, delta3)
-
-        delta2 = np.dot(delta3, self.W2.T)*self.sigmoidPrime(self.z2)
-        dJdW1 = np.dot(X.T, delta2)
-
-        return dJdW1, dJdW2
-
 
 class trainer(object):
-    def __init__(self, N, X, y, epochs = 400, batch_size = 100, metric = "roc_auc",learningRate="default"):
+    def __init__(self, N, epochs = 400, batch_size = 100, metric = "roc_auc",learningRate="default"):
 
         #Make Local reference to network, data, parameters:
         self.N = N
-        self.X = X
-        self.y = y
 
         self.epochs = epochs
         self.batch_size = batch_size
@@ -101,24 +82,26 @@ class trainer(object):
                 self.learningRate = 0.0005
             if actFunction == "tanh":
                 self.learningRate = 0.005
+        else:
+            self.learningRate = learningRate
 
     # Function to train the NN in batches, using stratified sampling
     def next_batch(X, y):
-    for i in np.arange(0, X.shape[0], batchSize):
+        for i in np.arange(0, X.shape[0], batchSize):
 
-        # Row indices that indicate a positive example
-        pos_list =
+            # Row indices that indicate a positive example
+            pos_list = y.iloc(1)
 
-        # Row indices that indicate a negative example
-        neg_list =
+            # Row indices that indicate a negative example
+            neg_list = y.iloc(0)
 
-        # Draw a sample from one of the two groups with equal probability
-        idx_list = []
-        for j in range(batchSize):
-            if bool(random.getrandbits(1)) == True:
-                idx_list.append(random.choice(pos_list))
-            else:
-                idx_list.append(random.choice(neg_list))
+            # Draw a sample from one of the two groups with equal probability
+            idx_list = []
+            for j in range(batchSize):
+                if bool(random.getrandbits(1)) == True:
+                    idx_list.append(random.choice(pos_list))
+                else:
+                    idx_list.append(random.choice(neg_list))
 
         yield (X[idx_list], y[idx_list])
 
@@ -131,8 +114,8 @@ class trainer(object):
 
             for (Xb, Yb) in next_batch(X, y):
 
-                H = sigmoid(np.dot(Xb, Wh))            # hidden layer results
-                Z = activate(np.dot(H,  Wz))            # output layer results
+                H = activate(np.dot(Xb, W1))            # hidden layer results
+                Z = activate(np.dot(H,  W2))            # output layer results
                 E = Yb - Z                              # how much we missed (error)
 
                 # Implement error metric of choice
@@ -144,13 +127,13 @@ class trainer(object):
 
                 dZ = E * activatePrime(Z)               # delta Z
                 dH = dZ.dot(Wz.T) * activatePrime(H)    # delta H
-                Wz += H.T.dot(dZ) * learningRate        # update output layer weights
-                Wh += Xb.T.dot(dH) * learningRate       # update hidden layer weights
+                W2 += H.T.dot(dZ) * learningRate        # update output layer weights
+                W1 += Xb.T.dot(dH) * learningRate       # update hidden layer weights
 
             error = np.average(epochLoss)
             lossHistory.append(error)
 
-        H = activate(np.dot(X, Wh))
-        Z = activate(np.dot(H, Wz))
+        H = activate(np.dot(X, W1))
+        Z = activate(np.dot(H, W2))
 
-        return(Z)
+        # How are the weights updated in the NN class?

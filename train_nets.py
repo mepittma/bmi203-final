@@ -1,24 +1,35 @@
 from nets import neural_net as nn
+#import matplotlib.pyplot as plt
 import numpy as np
 
-NN = nn.Neural_Network(inS=1, outS=1, hS=3)
+# Instantiate neural network and training classes
+NN = nn.Neural_Network(inS=17, outS=1, hS=3, actFunction="sigmoid")
+T = nn.trainer(NN, epochs = 400, batch_size = 8, metric = "roc_auc",learningRate="default")
 
-# 8x3x8 test vector
+# Ensure that the 8x3x8 encoder problem can be solved by this NN
 test_vec = [[0],[0],[0],[0],[0],[1],[0]]
-
 X = np.array(test_vec, dtype=float)
 y = np.array(test_vec, dtype=float)
-
-#Train network with new data:
-T = nn.trainer(NN)
 T.train(X,y)
-
-# Print the result of the training
 results = NN.forward(X)
 print(results)
-# Round each value in the output layer to 0 or 1
-output = [[round(number) for number in row] for row in results]
-print(output)
+print([[round(number) for number in row] for row in results])
+
+# Read in and encode the positive and negative sequences to train on Rap1 binding
+# files:
+"""
+nfile = "seqs/filt-negative.txt"
+pfile = "seqs/filt-positive.txt"
+
+def encode_17(seq):
+    sample = []
+    for char in seq:
+        gsub(char,)
+    return sample
+
+# Function to get kmers of 17 from the negative example file
+def choose_17(long_seq):
+"""
 
 
 """
