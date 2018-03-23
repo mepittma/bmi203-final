@@ -8,7 +8,7 @@ import numpy as np
 """
 # AUTOENCODER
 # Instantiate neural network and training classes
-NN = nn.Neural_Network(inS=1, outS=1, hS=3, actFunction="sigmoid")
+NN = nn.Neural_Network(inS=1, outS=1, hS=3, depth = 1, actFunction="sigmoid")
 T = nn.trainer(NN, epochs = 400, batch_size = 8, metric = "roc_auc",learningRate="default")
 
 # Ensure that the 8x3x8 encoder problem can be solved by this NN
@@ -26,7 +26,7 @@ print("Prediction: ", results)
 # not as interesting as new sequences
 def get_kmers(long_seq, k=17):
     kmers = []
-    for x in range(0,len(long_seq)+1-k, 8):
+    for x in range(0,len(long_seq)+1-k, 16): #Create an overlap of 1bp
         seq = long_seq[x:x+k]
         if seq not in kmers:
             kmers.append(seq)
@@ -58,9 +58,8 @@ with open(nfile, 'r') as nf:
     neg_seqs = nf.read().splitlines()
 kmers = []
 
-for long_seq in neg_seqs[0:5]:
+for long_seq in neg_seqs[0:2]:
     neg_kmers = get_kmers(long_seq)
-    print(neg_kmers)
     kmers = kmers + neg_kmers
 neg_list = []
 for seq in kmers:
@@ -68,16 +67,10 @@ for seq in kmers:
 
 #print(neg_list)
 # Combine into X and y, adding a column of ones to X to represent the bias node
-print("Positives: ", pos_list)
-print("Negatives: ", neg_list)
-X = np.concatenate( np.asarray(pos_list) + np.asarray(neg_list), axis=1 )
-print("X: ", X)
-y = [[1] for i in xrange(0,len(pos_list)) + [0] for i in xrange(0,len(neg_list))]
-X = np.concatenate((np.atleast_2d(np.ones(X.shape[0])).T, X), axis=1)
-print("y: ", y)
-
-print("X shape: ", X.shape)
-print("Y shape: ", y.shape)
+x = np.concatenate( (np.asarray(pos_list), np.asarray(neg_list)), axis=0 )
+y = [[1] for i in range(0,len(pos_list))] + [[0] for i in range(0,len(neg_list))]
+test = np.ones((x.shape[0],1,4))
+X = np.hstack((test, x)) #bias node: one for each sample(?)
 
 # Parameter grid search
 act_opts = ["sigmoid","ReLU","tanh"]
@@ -94,9 +87,9 @@ for seed in [1,42,7]:
     print("Random seed: ", seed)
 
     # Split the test/train data by random seed
+    print("Length of first axis: ", len(X[0]))
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
 
-    random.seed(seed)
     param_comparison = []
 
     for actFunction in act_opts:
@@ -106,22 +99,45 @@ for seed in [1,42,7]:
                     for learningRate in LR_opts[actFunction]:
 
                         # Initialize and train the network
-                        NN = nn.Neural_Network(inS=18, outS=1, hS=3, actFunction=actFunction)
+                        NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction=actFunction)
                         T = nn.trainer(NN, epochs, batch_size, metric,learningRate)
                         T.train(X_train,y_train)
 
-                        # Calculate AUROC
-                        T.forward
-                        score = roc_auc_score(Yb, Z)
+                        # Now try it on the testing data
+                        T.forward(X_test)
+                        Z = T.yHat
+                        score = roc_auc_score(y_test, Z)
 
                         # Save parameter dict and accuracy result in a list of tuples
-                        param_comparison.append(tup(T.params, score))
+                        param_comparison.append(tuple([T.params, score]))
 
 
     # Print out best parameters and their scores
-    best = max(lis,key=itemgetter(1))
+    best = max(param_comparison,key=itemgetter(1))
+    worst = min(param_comparison, key=itemgetter(1))
     print("Best parameters: ", best[0])
-    print("Accuracy score: ", best[1])
+    print("AUROC score: ", best[1])
+    print("\nWorst parameters: ", worst[0])
+    print("AUROC score: ", worst[1])
+
+    # Save parameter results to a text file
+    with open('output/ParameterSearchResults_{}.tsv'.format(seed), 'w') as f:
+        for tup in param_comparison:
+            f.write("\t".join(tup[0],tup[1]))
+            f.write("\n")
+
+    # Plot, coloring by parameter of interest
+    fig, axs = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
+    params = param_comparison[0]
+    axs[0].scatter(params["Number Epochs"], param_comparison[1], c=params["Activation Function"],label=params["Activation Function"])
+    axs[1].scatter(params["Number Epochs"], param_comparison[1], c=params["Optimization Metric"],label=params["Activation Function"])
+    axs[2].scatter(params["Training Batch Size"], param_comparison[1], c=params["Activation Function"], label=params["Activation Function"])
+    fig.suptitle('Parameter Grid Search Results')
+    axs.legend()
+    axs.grid(True)
+
+    fig.savefig("output/ParameterGrid_{}".format(seed))
+
 
 """
 plt.figure(figsize=(12, 9))

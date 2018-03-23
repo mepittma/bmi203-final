@@ -17,19 +17,20 @@ from sklearn.metrics import roc_curve, auc, roc_auc_score
 
 # Class for a neural network
 class Neural_Network(object):
-    def __init__(self,inS,outS,hS,actFunction="sigmoid"):
+    def __init__(self,inS,outS,hS,depth,actFunction="sigmoid"):
 
         #Define Hyperparameters
         self.inputLayerSize = inS
         self.outputLayerSize = outS
         self.hiddenLayerSize = hS
+        self.depth = depth
         self.actFunction = actFunction
 
         #Weights (parameters)
         # Random initial weights
         r0 = math.sqrt(2.0/(self.inputLayerSize))
         r1 = math.sqrt(2.0/(self.hiddenLayerSize))
-        self.W1 = np.random.uniform(size=(self.inputLayerSize, self.hiddenLayerSize),low=-r0,high=r0)
+        self.W1 = np.random.uniform(size=(self.inputLayerSize, self.hiddenLayerSize, self.depth),low=-r0,high=r0)
         self.W2 = np.random.uniform(size=(self.hiddenLayerSize,self.outputLayerSize),low=-r1,high=r1)
 
 
@@ -97,11 +98,7 @@ class trainer(object):
                 else:
                     idx_list.append(random.choice(neg_list))
 
-        yield (X[idx_list], y[idx_list])
-
-    # Function to keep track of which parameters yielded a given result
-    #def print_params(self):
-
+        yield(np.take(X, idx_list, axis=0), np.take(y, idx_list, axis=0))
 
     def train(self, X, y):
         lossHistory = []
@@ -109,28 +106,37 @@ class trainer(object):
         for i in range(self.epochs):
             epochLoss = []
 
-            for (Xb, Yb) in self.next_batch(X, y):
+            for (Xa, Ya) in self.next_batch(X, y):
 
-                H = self.N.activate(np.dot(Xb, self.N.W1))            # hidden layer results
+                #Xb = np.reshape(Xa,[self.N.inputLayerSize,-1])
+                # Multiply each response by four in place
+                #Yb = []
+                #for j in Ya:
+                #    Yb = Yb + [j,j,j,j]
+
+                H = self.N.activate(np.tensordot(Xa, self.N.W1, axes=([1,2],[0,2])))          # hidden layer results
                 Z = self.N.activate(np.dot(H,  self.N.W2))            # output layer results
-                E = Yb - Z                              # how much we missed (error)
+                E = Ya - Z                              # how much we missed (error)                            # how much we missed (error)
 
                 # Implement error metric of choice
                 if self.metric == "mse":
                     epochLoss.append(np.sum(E**2))
                 if self.metric == "roc_auc":
-                    false_positive_rate, true_positive_rate, thresholds = roc_curve(Yb, Z)
-                    epochLoss.append(1 - roc_auc_score(Yb, Z))
+                    false_positive_rate, true_positive_rate, thresholds = roc_curve(Ya, Z)
+                    epochLoss.append(1 - roc_auc_score(Ya, Z))
 
                 dZ = E * self.N.activatePrime(Z)                    # delta Z - change in output error wrt W2
                 dH = dZ.dot(self.N.W2.T) * self.N.activatePrime(H)  # delta H - change in hidden error wrt W1
                 self.N.W2 += H.T.dot(dZ) * self.learningRate        # update output layer weights
-                self.N.W1 += Xb.T.dot(dH) * self.learningRate       # update hidden layer weights
+                self.N.W1 += np.einsum('ijk,il->jlk', Xa, dH)       # update hidden layer weights
+
 
             error = np.average(epochLoss)
             lossHistory.append(error)
 
-        H = self.N.activate(np.dot(X, self.N.W1))
+        # reshape X and predict
+        #X = np.reshape(X, [self.N.inputLayerSize,-1])
+        H = self.N.activate(np.tensordot(X, self.N.W1, axes = ([1,2],[0,2])))
         Z = self.N.activate(np.dot(H, self.N.W2))
 
         self.errorHistory = lossHistory
@@ -145,7 +151,7 @@ class trainer(object):
     def forward(self, X):
 
         #Propogate inputs though network
-        self.z2 = np.dot(X, self.N.W1)
-        self.a2 = self.activate(self.z2)
+        self.z2 = np.tensordot(X, self.N.W1, axes=([1,2],[0,2]))
+        self.a2 = self.N.activate(self.z2)
         self.z3 = np.dot(self.a2, self.N.W2)
-        self.yHat = self.activate(self.z3)
+        self.yHat = self.N.activate(self.z3)
