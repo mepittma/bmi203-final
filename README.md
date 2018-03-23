@@ -1,7 +1,7 @@
 # example
 
 [![Build
-Status](https://travis-ci.org/mepittma/bmi206-1.svg?branch=master)](https://travis-ci.org/mepittma/bmi206-1)
+Status](https://travis-ci.org/mepittma/bmi203-final.svg?branch=master)](https://travis-ci.org/mepittma/bmi206-final)
 
 Example python project with testing.
 
@@ -21,10 +21,10 @@ conda install --yes --file requirements.txt
 ```
 
 to install all the dependencies in `requirements.txt`. Then the package's
-main function (located in `nets/__main__.py`) can be run as follows
+main function can be run as follows
 
 ```
-python -m nets
+python train_nets.py
 ```
 
 ## testing

@@ -11,9 +11,8 @@
 
 # Tests to check functions appearing in this script are in test/test_algs.py
 
-import math
+import math, random
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, roc_auc_score
 
 # Class for a neural network
@@ -28,10 +27,11 @@ class Neural_Network(object):
 
         #Weights (parameters)
         # Random initial weights
-        r0 = math.sqrt(2.0/(inputLayerSize))
-        r1 = math.sqrt(2.0/(hiddenLayerSize))
+        r0 = math.sqrt(2.0/(self.inputLayerSize))
+        r1 = math.sqrt(2.0/(self.hiddenLayerSize))
         self.W1 = np.random.uniform(size=(self.inputLayerSize, self.hiddenLayerSize),low=-r0,high=r0)
         self.W2 = np.random.uniform(size=(self.hiddenLayerSize,self.outputLayerSize),low=-r1,high=r1)
+
 
     def forward(self, X):
 
@@ -47,20 +47,20 @@ class Neural_Network(object):
 
     def activate(self, z):
 
-        if actFunction == "sigmoid":
+        if self.actFunction == "sigmoid":
             return 1/(1+np.exp(-z))
-        if actFunction == "ReLU":
+        if self.actFunction == "ReLU":
             return z * (z > 0) #0 if z<=0; otherwise, = z
-        if actFunction =="tanh":
+        if self.actFunction =="tanh":
             return np.tanh(z)
 
     def activatePrime(self,z):
 
-        if actFunction == "sigmoid":
+        if self.actFunction == "sigmoid":
             return np.exp(-z)/((1+np.exp(-z))**2)
-        if actFunction == "ReLU":
+        if self.actFunction == "ReLU":
             return z > 0 #1 if z>0, 0 if z<=0
-        if actFunction =="tanh":
+        if self.actFunction =="tanh":
             return 1 - z**2
 
 
@@ -76,28 +76,34 @@ class trainer(object):
 
         #Unless otherwise specified, define learning rate based on which activation function was chosen
         if learningRate == "default":
-            if actFunction == "sigmoid":
+            if self.N.actFunction == "sigmoid":
                 self.learningRate = 0.45
-            if actFunction == "ReLU":
+            if self.N.actFunction == "ReLU":
                 self.learningRate = 0.0005
-            if actFunction == "tanh":
+            if self.N.actFunction == "tanh":
                 self.learningRate = 0.005
         else:
             self.learningRate = learningRate
 
     # Function to train the NN in batches, using stratified sampling
-    def next_batch(X, y):
-        for i in np.arange(0, X.shape[0], batchSize):
+    def next_batch(self, X, y):
+
+        for i in np.arange(0, X.shape[0], self.batch_size):
 
             # Row indices that indicate a positive example
-            pos_list = y.iloc(1)
+            pos_list = [ i for i, response in enumerate(y) if response == [1] ]
 
             # Row indices that indicate a negative example
-            neg_list = y.iloc(0)
+            neg_list = [ i for i, response in enumerate(y) if response == [0] ]
+
+            # Initialize the batch with one positive and one negative example
+            # (ensuring that there is always at least one of each class - AUROC gets mad otherwise)
+            idx_list = []
+            idx_list.append(random.choice(pos_list))
+            idx_list.append(random.choice(neg_list))
 
             # Draw a sample from one of the two groups with equal probability
-            idx_list = []
-            for j in range(batchSize):
+            for j in range(self.batch_size-2):
                 if bool(random.getrandbits(1)) == True:
                     idx_list.append(random.choice(pos_list))
                 else:
@@ -105,35 +111,39 @@ class trainer(object):
 
         yield (X[idx_list], y[idx_list])
 
+    # Function to keep track of which parameters yielded a given result
+    #def print_params(self):
+
 
     def train(self, X, y):
         lossHistory = []
 
-        for i in range(epochs):
+        for i in range(self.epochs):
             epochLoss = []
 
-            for (Xb, Yb) in next_batch(X, y):
+            for (Xb, Yb) in self.next_batch(X, y):
 
-                H = activate(np.dot(Xb, W1))            # hidden layer results
-                Z = activate(np.dot(H,  W2))            # output layer results
+                H = self.N.activate(np.dot(Xb, self.N.W1))            # hidden layer results
+                Z = self.N.activate(np.dot(H,  self.N.W2))            # output layer results
                 E = Yb - Z                              # how much we missed (error)
 
                 # Implement error metric of choice
-                if metric == "mse":
+                if self.metric == "mse":
                     epochLoss.append(np.sum(E**2))
-                if metric == "roc_auc":
+                if self.metric == "roc_auc":
                     false_positive_rate, true_positive_rate, thresholds = roc_curve(Yb, Z)
-                    epochLoss.append(1 - roc_auc_score(y, est.predict(X)))
+                    epochLoss.append(1 - roc_auc_score(Yb, Z))
 
-                dZ = E * activatePrime(Z)               # delta Z
-                dH = dZ.dot(Wz.T) * activatePrime(H)    # delta H
-                W2 += H.T.dot(dZ) * learningRate        # update output layer weights
-                W1 += Xb.T.dot(dH) * learningRate       # update hidden layer weights
+                dZ = E * self.N.activatePrime(Z)                    # delta Z - change in output error wrt W2
+                dH = dZ.dot(self.N.W2.T) * self.N.activatePrime(H)  # delta H - change in hidden error wrt W1
+                self.N.W2 += H.T.dot(dZ) * self.learningRate        # update output layer weights
+                self.N.W1 += Xb.T.dot(dH) * self.learningRate       # update hidden layer weights
 
             error = np.average(epochLoss)
             lossHistory.append(error)
 
-        H = activate(np.dot(X, W1))
-        Z = activate(np.dot(H, W2))
+        H = self.N.activate(np.dot(X, self.N.W1))
+        Z = self.N.activate(np.dot(H, self.N.W2))
 
-        # How are the weights updated in the NN class?
+        self.errorHistory = lossHistory
+        self.prediction = Z
