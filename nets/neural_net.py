@@ -33,18 +33,6 @@ class Neural_Network(object):
         self.W2 = np.random.uniform(size=(self.hiddenLayerSize,self.outputLayerSize),low=-r1,high=r1)
 
 
-    def forward(self, X):
-
-        # add a bias unit to the input layer
-        X = np.concatenate((np.atleast_2d(np.ones(X.shape[0])).T, X), axis=1)
-
-        #Propogate inputs though network
-        self.z2 = np.dot(X, self.W1)
-        self.a2 = self.sigmoid(self.z2)
-        self.z3 = np.dot(self.a2, self.W2)
-        yHat = self.sigmoid(self.z3)
-        return yHat
-
     def activate(self, z):
 
         if self.actFunction == "sigmoid":
@@ -147,3 +135,17 @@ class trainer(object):
 
         self.errorHistory = lossHistory
         self.prediction = Z
+
+        self.params = {"Input Size":self.N.inputLayerSize, "Output Size":self.N.outputLayerSize,\
+                        "Hidden Layers": self.N.hiddenLayerSize, "Activation Function":self.N.actFunction,\
+                        "Number Epochs":self.epochs,"Training Batch Size":self.batch_size,\
+                        "Optimization Metric":self.metric, "Learning Rate":self.learningRate}
+
+    # Function to output the predicted results of test/unknown data
+    def forward(self, X):
+
+        #Propogate inputs though network
+        self.z2 = np.dot(X, self.N.W1)
+        self.a2 = self.activate(self.z2)
+        self.z3 = np.dot(self.a2, self.N.W2)
+        self.yHat = self.activate(self.z3)
