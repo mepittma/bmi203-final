@@ -155,3 +155,10 @@ class trainer(object):
         self.a2 = self.N.activate(self.z2)
         self.z3 = np.dot(self.a2, self.N.W2)
         self.yHat = self.N.activate(self.z3)
+
+        #Create a tuple for each sequence, prediction pair
+        """
+        self.seqList = [seq for seq in X]
+        print(self.seqList)
+
+        """

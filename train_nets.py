@@ -26,7 +26,7 @@ print("Prediction: ", results)
 # not as interesting as new sequences
 def get_kmers(long_seq, k=17):
     kmers = []
-    for x in range(0,len(long_seq)+1-k, 16): #Create an overlap of 1bp
+    for x in range(0,len(long_seq)+1-k, 16): #Create an overlap of 1 bp
         seq = long_seq[x:x+k]
         if seq not in kmers:
             kmers.append(seq)
@@ -43,6 +43,16 @@ def encode(seq):
         sample.append(translationdict.get(n))
     return np.asarray(sample)
 
+# Inverse function to decode the one-hot examples
+def decode(seq):
+    to, fro  = ['A','C','T','G'], [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+    translationdict = dict(zip(fro,to))
+
+    sample = []
+    for n in seq:
+        sample.append(translationdict.get(n))
+    return str(sample)
+
 # Read in and encode the positive and negative sequences to train on Rap1 binding
 nfile = "seqs/filt-negative.txt"
 pfile = "seqs/filt-positive.txt"
@@ -58,14 +68,13 @@ with open(nfile, 'r') as nf:
     neg_seqs = nf.read().splitlines()
 kmers = []
 
-for long_seq in neg_seqs[0:2]:
+for long_seq in neg_seqs:
     neg_kmers = get_kmers(long_seq)
     kmers = kmers + neg_kmers
 neg_list = []
 for seq in kmers:
     neg_list.append(encode(seq))
 
-#print(neg_list)
 # Combine into X and y, adding a column of ones to X to represent the bias node
 x = np.concatenate( (np.asarray(pos_list), np.asarray(neg_list)), axis=0 )
 y = [[1] for i in range(0,len(pos_list))] + [[0] for i in range(0,len(neg_list))]
@@ -90,13 +99,29 @@ for seed in [1,42,7]:
     print("Length of first axis: ", len(X[0]))
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed, stratify=y)
 
+    act_list = list()
+    epoch_list = list()
+    batch_list = list()
+    metric_list = list()
+    learning_list = list()
+    score_list = list()
+
     param_comparison = []
 
     for actFunction in act_opts:
+        print("Activation fucntion: ", actFunction)
         for epochs in epoch_opts:
+            print("Epoch ",epochs)
             for batch_size in batch_opts:
                 for metric in metric_opts:
                     for learningRate in LR_opts[actFunction]:
+
+                        # Append parameters to lists
+                        act_list.append(actFunction)
+                        epoch_list.append(epochs)
+                        batch_list.append(batch_size)
+                        metric_list.append(metric)
+                        learning_list.append(learningRate)
 
                         # Initialize and train the network
                         NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction=actFunction)
@@ -110,6 +135,7 @@ for seed in [1,42,7]:
 
                         # Save parameter dict and accuracy result in a list of tuples
                         param_comparison.append(tuple([T.params, score]))
+                        score_list.append(score)
 
 
     # Print out best parameters and their scores
@@ -122,35 +148,99 @@ for seed in [1,42,7]:
 
     # Save parameter results to a text file
     with open('output/ParameterSearchResults_{}.tsv'.format(seed), 'w') as f:
-        for tup in param_comparison:
-            f.write("\t".join(tup[0],tup[1]))
+        for i in range(len(act_list)):
+            value_list = [act_list[i],epoch_list[i],batch_list[i],metric_list[i],learning_list[i]]
+            f.write("\t".join(str(v) for v in value_list))
             f.write("\n")
 
+    """
+    #SCREW THIS, I'M USING R
     # Plot, coloring by parameter of interest
+    print("Lengths of lists:\n",len(epoch_list))
+    print("\n",len(act_list))
+    print("\n",len(score_list))
     fig, axs = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
-    params = param_comparison[0]
-    axs[0].scatter(params["Number Epochs"], param_comparison[1], c=params["Activation Function"],label=params["Activation Function"])
-    axs[1].scatter(params["Number Epochs"], param_comparison[1], c=params["Optimization Metric"],label=params["Activation Function"])
-    axs[2].scatter(params["Training Batch Size"], param_comparison[1], c=params["Activation Function"], label=params["Activation Function"])
+    axs[0].scatter(epoch_list, score_list, c=act_list,label=act_list)
+    axs[1].scatter(epoch_list, score_list, c=metric_list,label=metric_list)
+    axs[2].scatter(batch_list, score_list, c=act_list, label=act_list)
     fig.suptitle('Parameter Grid Search Results')
     axs.legend()
     axs.grid(True)
 
     fig.savefig("output/ParameterGrid_{}".format(seed))
+    """
 
 
 """
-plt.figure(figsize=(12, 9))
-plt.subplot(311)
-plt.plot(lossHistory)
-plt.subplot(312)
-plt.plot(H, '-*')
-plt.subplot(313)
-plt.plot(x, Y, 'ro')    # training data
-plt.plot(X[:, 1], Z, 'bo')   # learned
-plt.show()
+# RUN FOR IDEAL PARAMETERS
 
-print('[', inputLayerSize, hiddenLayerSize, outputLayerSize, ']',
-      'Activation:', activation, 'Iterations:', epochs,
-      'Learning rate:', L, 'Final loss:', mse, 'Time:', end - start)
+def ideal_run(NN, suff):
+    T = nn.trainer(NN, epochs, batch_size, metric,learningRate)
+    T.train(X,y)
+
+    # Now try it on the testing data
+    T.forward(X)
+    Z = T.yHat
+    lossHistory = T.errorHistory
+
+    # Print out the performance given by AUROC
+    score = roc_auc_score(y, Z)
+    print("Score of final training: ", score)
+
+    # Plot a figure looking at the error over time
+    plt.plot(lossHistory)
+    plt.savefig("output/LossHistory_{}".format(suff))
+
+    return score
+
+# Initialize and train the network for the ideal case
+NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction=actFunction)
+ideal_run(NN, "3Layer")
+
+# Initialize and train the network for the ideal case
+NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction=actFunction)
+ideal_run(NN, "3Layer")
+
+# Test on different values of hidden layer size
+score_list = []
+for i in range(1,20):
+    NN = nn.Neural_Network(inS=18, outS=1, hS=i, depth=4, actFunction=actFunction)
+    score_list.append(ideal_run(NN, suff=i))
+"""
+
+"""
+# OUT-OF-SAMPLE DATA
+
+# Run on the test data, saving out in file with format seq\tscore\n
+tfile = "seqs/rap1-lieb-test.txt"
+seq_list = []
+
+# Read in and encode the DNA sequences
+with open(tfile, 'r') as tf:
+    seqs = tf.read().splitlines()
+pos_list = []
+for seq in seqs:
+    seq_list.append(encode(seq))
+
+# Train the neural net
+T = nn.trainer(NN, epochs, batch_size, metric,learningRate)
+T.train(X,y)
+T.forward(X)
+Z = T.yHat
+
+# Undo DNA encoding
+seq_list = T.seq_list
+nuc_list = []
+for seq in seq_list:
+    nuc_list.append(decode(seq))
+
+# Print out to file
+outfile = 'output/predictions.txt'
+with open(outfile,'w') as fh:
+    for i in range(len(nuc_list)):
+        string = "{}\t{}\n".format(nuc_list[i],Z[i])
+        fh.write(string)
+
+
+
 """
