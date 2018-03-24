@@ -1,0 +1,28 @@
+Random seed:  1
+Length of first axis:  18
+Activation fucntion:  sigmoid
+Epoch  300
+Traceback (most recent call last):
+  File "train_nets.py", line 129, in <module>
+    T.train(X_train,y_train)
+  File "/Users/student/Documents/BMI206/bmi203-final/nets/neural_net.py", line 109, in train
+    for (Xa, Ya) in self.next_batch(X, y):
+  File "/Users/student/Documents/BMI206/bmi203-final/nets/neural_net.py", line 86, in next_batch
+    neg_list = [ i for i, response in enumerate(y) if response == [0] ]
+  File "/Users/student/Documents/BMI206/bmi203-final/nets/neural_net.py", line 86, in <listcomp>
+    neg_list = [ i for i, response in enumerate(y) if response == [0] ]
+KeyboardInterrupt
+Random seed:  1
+Length of first axis:  18
+Activation fucntion:  sigmoid
+Epoch  300
+Traceback (most recent call last):
+  File "train_nets.py", line 129, in <module>
+    T.train(X_train,y_train)
+  File "/Users/student/Documents/BMI206/bmi203-final/nets/neural_net.py", line 109, in train
+    for (Xa, Ya) in self.next_batch(X, y):
+  File "/Users/student/Documents/BMI206/bmi203-final/nets/neural_net.py", line 86, in next_batch
+    neg_list = [ i for i, response in enumerate(y) if response == [0] ]
+  File "/Users/student/Documents/BMI206/bmi203-final/nets/neural_net.py", line 86, in <listcomp>
+    neg_list = [ i for i, response in enumerate(y) if response == [0] ]
+KeyboardInterrupt

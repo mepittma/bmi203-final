@@ -10,20 +10,8 @@ def test_listcomp():
     testvec = [[0],[1],[0],[1],[0],[1]]
     assert [ i for i, response in enumerate(testvec) if response == [1] ] == [1,3,5]
 
-#def test_activations():
-    # sigmoid and sigmoid derivative test
-
-    # tanh and tanh derivative test
-
-    # ReLU and ReLU derivative test
-
-#def test_batch():
-
-#def test_error():
-
 def test_dna():
     assert tn.get_kmers('ATCG',2) == ['AT','TC','CG']
     assert tn.encode('ACTGCT') == [[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1], [0,1,0,0], [0,0,1,0]]
     assert filter_negs.reverse_complement("TCGGGCCC") == "GGGCCCGA"
-
-#def test_
+    assert tn.decode([[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1], [0,1,0,0], [0,0,1,0]]) == ['ACTGCT']

@@ -68,7 +68,7 @@ with open(nfile, 'r') as nf:
     neg_seqs = nf.read().splitlines()
 kmers = []
 
-for long_seq in neg_seqs:
+for long_seq in neg_seqs[0:10]:
     neg_kmers = get_kmers(long_seq)
     kmers = kmers + neg_kmers
 neg_list = []
@@ -81,6 +81,7 @@ y = [[1] for i in range(0,len(pos_list))] + [[0] for i in range(0,len(neg_list))
 test = np.ones((x.shape[0],1,4))
 X = np.hstack((test, x)) #bias node: one for each sample(?)
 
+"""
 # Parameter grid search
 act_opts = ["sigmoid","ReLU","tanh"]
 epoch_opts = np.arange(300,500,50)
@@ -149,11 +150,12 @@ for seed in [1,42,7]:
     # Save parameter results to a text file
     with open('output/ParameterSearchResults_{}.tsv'.format(seed), 'w') as f:
         for i in range(len(act_list)):
-            value_list = [act_list[i],epoch_list[i],batch_list[i],metric_list[i],learning_list[i]]
+            value_list = [act_list[i],epoch_list[i],batch_list[i],metric_list[i],learning_list[i],score_list[i]]
             f.write("\t".join(str(v) for v in value_list))
             f.write("\n")
+"""
 
-    """
+"""
     #SCREW THIS, I'M USING R
     # Plot, coloring by parameter of interest
     print("Lengths of lists:\n",len(epoch_list))
@@ -168,14 +170,13 @@ for seed in [1,42,7]:
     axs.grid(True)
 
     fig.savefig("output/ParameterGrid_{}".format(seed))
-    """
-
+"""
 
 """
 # RUN FOR IDEAL PARAMETERS
 
 def ideal_run(NN, suff):
-    T = nn.trainer(NN, epochs, batch_size, metric,learningRate)
+    T = nn.trainer(NN, epochs=300, batch_size=50, metric='roc_auc',learningRate=0.5)
     T.train(X,y)
 
     # Now try it on the testing data
@@ -189,26 +190,32 @@ def ideal_run(NN, suff):
 
     # Plot a figure looking at the error over time
     plt.plot(lossHistory)
+    plt.title('Error history')
+    plt.xlabel('Epoch Number')
+    plt.ylabel('Error')
     plt.savefig("output/LossHistory_{}".format(suff))
 
     return score
 
 # Initialize and train the network for the ideal case
-NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction=actFunction)
-ideal_run(NN, "3Layer")
-
-# Initialize and train the network for the ideal case
-NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction=actFunction)
+NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction='sigmoid')
 ideal_run(NN, "3Layer")
 
 # Test on different values of hidden layer size
 score_list = []
 for i in range(1,20):
-    NN = nn.Neural_Network(inS=18, outS=1, hS=i, depth=4, actFunction=actFunction)
+    NN = nn.Neural_Network(inS=18, outS=1, hS=i, depth=4, actFunction='sigmoid')
     score_list.append(ideal_run(NN, suff=i))
+print(len(score_list))
+# create a simple scatterplot to look at this
+plt.scatter(range(1,20), score_list)
+plt.title('Model score dynamics with respect to changing hiddenLayerSize')
+plt.xlabel('Hidden Layer Size')
+plt.ylabel('AUROC score')
+plt.show()
 """
 
-"""
+
 # OUT-OF-SAMPLE DATA
 
 # Run on the test data, saving out in file with format seq\tscore\n
@@ -223,24 +230,26 @@ for seq in seqs:
     seq_list.append(encode(seq))
 
 # Train the neural net
-T = nn.trainer(NN, epochs, batch_size, metric,learningRate)
+NN = nn.Neural_Network(inS=18, outS=1, hS=3, depth=4, actFunction='sigmoid')
+T = nn.trainer(NN, epochs=300, batch_size=50, metric='roc_auc',learningRate=0.5)
 T.train(X,y)
-T.forward(X)
+
+# make a prediction for the data, adding a bias vector
+encseqs = np.asarray(seq_list)
+bias = np.ones((encseqs.shape[0],1,4))
+OOS = np.hstack((bias, encseqs))
+T.forward(OOS)
 Z = T.yHat
 
-# Undo DNA encoding
+"""# Undo DNA encoding
 seq_list = T.seq_list
 nuc_list = []
 for seq in seq_list:
-    nuc_list.append(decode(seq))
+    nuc_list.append(decode(seq))"""
 
 # Print out to file
 outfile = 'output/predictions.txt'
 with open(outfile,'w') as fh:
-    for i in range(len(nuc_list)):
-        string = "{}\t{}\n".format(nuc_list[i],Z[i])
+    for i in range(len(seq_list)):
+        string = "{}\t{}\n".format(seqs[i],Z[i])
         fh.write(string)
-
-
-
-"""

@@ -157,8 +157,4 @@ class trainer(object):
         self.yHat = self.N.activate(self.z3)
 
         #Create a tuple for each sequence, prediction pair
-        """
         self.seqList = [seq for seq in X]
-        print(self.seqList)
-
-        """
