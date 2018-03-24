@@ -26,7 +26,7 @@ print("Prediction: ", results)
 # not as interesting as new sequences
 def get_kmers(long_seq, k=17):
     kmers = []
-    for x in range(0,len(long_seq)+1-k, 16): #Create an overlap of 1 bp
+    for x in range(0,len(long_seq)+1-k): # to create an overlap of 1 bp, specify step size of 16
         seq = long_seq[x:x+k]
         if seq not in kmers:
             kmers.append(seq)
