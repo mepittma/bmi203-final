@@ -69,11 +69,10 @@ def remove_strings_w_subs(big_list, substring_list):
 # # # # # # # # # # COMMANDS # # # # # # # # # #
 
 # files:
-base_dir = "/Users/student/Documents/BMI206/bmi203-final/seqs"
-neg_file = "{}/yeast-upstream-1k-negative.fa".format(base_dir)
-pos_file = "{}/rap1-lieb-positives.txt".format(base_dir)
-out_nfile = "{}/filt-negative.txt".format(base_dir)
-out_pfile = "{}/filt-positive.txt".format(base_dir)
+neg_file = "seqs/yeast-upstream-1k-negative.fa"
+pos_file = "seqs/rap1-lieb-positives.txt"
+out_nfile = "seqs/filt-negative.txt"
+out_pfile = "seqs/filt-positive.txt"
 
 # Read in the lists from the files
 pos_list = read_text(pos_file)
