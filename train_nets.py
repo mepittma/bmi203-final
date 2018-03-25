@@ -43,15 +43,7 @@ def encode(seq):
         sample.append(translationdict.get(n))
     return np.asarray(sample)
 
-# Inverse function to decode the one-hot examples
-def decode(seq):
-    to, fro  = ['A','C','T','G'], [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
-    translationdict = dict(zip(fro,to))
-
-    sample = []
-    for n in seq:
-        sample.append(translationdict.get(n))
-    return str(sample)
+print(encode('ACTGCT'))
 
 # Read in and encode the positive and negative sequences to train on Rap1 binding
 nfile = "seqs/filt-negative.txt"
@@ -217,7 +209,7 @@ plt.show()
 
 
 # OUT-OF-SAMPLE DATA
-
+"""
 # Run on the test data, saving out in file with format seq\tscore\n
 tfile = "seqs/rap1-lieb-test.txt"
 seq_list = []
@@ -240,16 +232,13 @@ bias = np.ones((encseqs.shape[0],1,4))
 OOS = np.hstack((bias, encseqs))
 T.forward(OOS)
 Z = T.yHat
+"""
 
-"""# Undo DNA encoding
-seq_list = T.seq_list
-nuc_list = []
-for seq in seq_list:
-    nuc_list.append(decode(seq))"""
-
+"""
 # Print out to file
 outfile = 'output/predictions.txt'
 with open(outfile,'w') as fh:
     for i in range(len(seq_list)):
         string = "{}\t{}\n".format(seqs[i],Z[i])
         fh.write(string)
+"""
