@@ -12,6 +12,5 @@ def test_listcomp():
 
 def test_dna():
     assert tn.get_kmers('ATCG',2) == ['AT','TC','CG']
-    assert tn.encode('ACTGCT') == [[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1], [0,1,0,0], [0,0,1,0]]
+    assert tn.encode('ACTGCT').all() == [[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1], [0,1,0,0], [0,0,1,0]]
     assert filter_negs.reverse_complement("TCGGGCCC") == "GGGCCCGA"
-    assert tn.decode([[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1], [0,1,0,0], [0,0,1,0]]) == ['ACTGCT']

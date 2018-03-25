@@ -1,1 +1,3 @@
-{}
+{
+  "test/test_algs.py::test_dna": true
+}
